@@ -1,4 +1,3 @@
-def hello()
-{
+def hello ( ){
 	echo "Hello World!"
 }
