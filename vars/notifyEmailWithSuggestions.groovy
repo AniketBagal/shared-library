@@ -78,7 +78,7 @@ def extractErrorsFromConsole() {
 
 def getSuggestionForError(String errorLine) {
     def suggestionsMap = [
-    (~/.*not recognized as an internal or external command.*/) : "Check if the tool/command is installed and added to PATH.",
+    (~/.*not recognized as an internal or external command.*/) : "Check if there is any typing mistake or check if the tool/command is installed and added to PATH.",
     (~/.*No such file or directory.*/)                         : "Ensure the referenced file exists and the path is correct.",
     (~/.*Permission denied.*/)                                 : "Check file or directory permissions.",
     (~/.*Connection timed out.*/)                              : "Verify network connectivity and endpoint availability.",
