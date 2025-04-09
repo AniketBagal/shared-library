@@ -1,9 +1,9 @@
 def call(Map config = [:]) {
-    def subject = config.success ? "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}" 
-                                 : "❌ Build FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+    def subject = config.success ? "Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}" 
+                                 : "Build FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
 
     def color = config.success ? "green" : "red"
-    def suggestion = config.success ? "🎉 Great job! No issues detected." : (config.suggestion ?: "Please check Jenkins console output for more info.")
+    def suggestion = config.success ? "Great job! No issues detected." : (config.suggestion ?: "Please check Jenkins console output for more info.")
 
     emailext (
         subject: subject,
@@ -15,7 +15,7 @@ def call(Map config = [:]) {
                 <p><b>Build #:</b> ${env.BUILD_NUMBER}</p>
                 <p><b>Status:</b> ${config.success ? 'Success' : 'Failure'}</p>
                 <p><b>Suggestions:</b> ${suggestion}</p>
-                <p>🔗 <a href="${env.BUILD_URL}">View Build</a></p>
+                <p><a href="${env.BUILD_URL}">View Build</a></p>
             </body>
         </html>
         """,
