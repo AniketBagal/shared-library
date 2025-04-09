@@ -1,5 +1,3 @@
-import java.util.regex.Pattern
-
 def call(Map config = [:]) {
     def subject = config.success ? "Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}" 
                                  : "Build FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
@@ -18,7 +16,7 @@ def call(Map config = [:]) {
                         <th>Error</th>
                         <th>Error Description</th>
                     </tr>
-                    ${errorLines.collectWithIndex { line, i -> "<tr><td>Error ${i + 1}</td><td>${line}</td></tr>" }.join("\n")}
+                    ${generateErrorTableRows(errorLines)}
                 </table>
             """
         } else {
@@ -37,6 +35,7 @@ def call(Map config = [:]) {
                 <p><b>Status:</b> ${config.success ? 'Success' : 'Failure'}</p>
                 <p><b>Suggestions:</b> ${suggestion}</p>
                 ${errorTable}
+                <p><a href="${env.BUILD_URL}">View Build Details</a></p>
             </body>
         </html>
         """,
@@ -45,15 +44,15 @@ def call(Map config = [:]) {
     )
 }
 
-// Utility method for extracting filtered error lines from the Jenkins log
+// Utility method to extract filtered error lines from the Jenkins console log
 def extractErrorsFromConsole() {
     def errorKeywords = ["error", "failed", "exception", "not recognized", "not found"]
     def ignorePatterns = [
-        Pattern.compile("0 error\\(s\\)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("0 errors", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("^Note:", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("^\\[INFO\\]", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("^\\\\s*\$") // Empty lines (escaped properly)
+        ~/0 error\(s\)/,
+        ~/0 errors/,
+        ~/^Note:/,
+        ~/^\[INFO\]/,
+        ~/^\s*$/ // empty lines
     ]
 
     def errorLines = []
@@ -63,7 +62,7 @@ def extractErrorsFromConsole() {
         logLines.each { line ->
             def lowerLine = line.toLowerCase()
             def isKeywordMatch = errorKeywords.any { keyword -> lowerLine.contains(keyword) }
-            def isIgnored = ignorePatterns.any { pattern -> pattern.matcher(line).matches() }
+            def isIgnored = ignorePatterns.any { pattern -> (line ==~ pattern) }
 
             if (isKeywordMatch && !isIgnored) {
                 errorLines << line.trim()
@@ -74,4 +73,13 @@ def extractErrorsFromConsole() {
     }
 
     return errorLines
+}
+
+// Helper function to generate error table rows with index
+def generateErrorTableRows(List errorLines) {
+    def rows = ""
+    for (int i = 0; i < errorLines.size(); i++) {
+        rows += "<tr><td>Error ${i + 1}</td><td>${errorLines[i]}</td></tr>\n"
+    }
+    return rows
 }
