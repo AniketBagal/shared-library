@@ -1,80 +1,62 @@
-def call(String buildStatus = 'SUCCESS', String buildNumber, String jobName, String buildUrl, String recipient) {
-    def subject = "Build ${buildStatus}: ${jobName} #${buildNumber}"
-    def log = currentBuild.rawBuild.getLog(10000).join('\n') // Increased to capture more errors
-    def errorLines = log.readLines().findAll { it.toLowerCase().contains('error') }
+def call(Map config = [:]) {
+    def buildStatus = config.buildStatus ?: 'SUCCESS'
+    def buildNumber = config.buildNumber ?: 'N/A'
+    def jobName = config.jobName ?: 'N/A'
+    def buildUrl = config.buildUrl ?: ''
+    def recipient = config.recipient ?: 'your-email@example.com'
 
-    // Error to Suggestion Mapping
-    def suggestionMap = [
-        ~/.*error.*not recognized as an internal or external command.*/i:
-            "Check if the executable name is correct and exists in the expected path.",
-        ~/.*fatal error: '.*' file not found.*/i:
-            "Verify if the required file exists and the include paths are correct.",
-        ~/.*linker command failed with exit code.*/i:
-            "Check for missing libraries or incorrect linker flags.",
-        ~/.*undefined reference to.*/i:
-            "Ensure all functions are implemented and the correct libraries are linked.",
-        ~/.*compilation terminated.*/i:
-            "Check for missing headers or syntax errors earlier in the file.",
-        ~/.*expected.*before.*/i:
-            "There might be a syntax issue; double-check your code structure.",
-        ~/.*no such file or directory.*/i:
-            "Ensure all referenced files exist and paths are correctly set.",
-        ~/.*0 error\(s\).*/i:
-            "There are no compilation errors. Check runtime logs for more info.",
-        ~/.*permission denied.*/i:
-            "Check file permissions or whether the user has access to required paths.",
-        ~/.*cannot find -l.*/i:
-            "A library is missing. Install the required dev packages.",
-        ~/.*invalid use of incomplete type.*/i:
-            "Forward declaration used without including full definition. Add proper header file.",
-        ~/.*assignment makes integer from pointer without a cast.*/i:
-            "Mismatched types. Ensure the pointer and target variable types are compatible."
+    def log = currentBuild.rawBuild.getLog(1000).join("\n")
+    def errors = []
+
+    def errorSuggestions = [
+        (~/(?i).*cpp-buil\.exe' is not recognized as an internal or external command.*/): "Fix the typo: it should be 'cpp-build.exe', not 'cpp-buil.exe'.",
+        (~/(?i).*error C\d{4}.*/): "C++ compilation error. Check for syntax issues or missing headers.",
+        (~/(?i).*fatal error LNK\d+.*/): "Linker error. Check project linker settings and library paths.",
+        (~/(?i).*MSB\d{4}.*/): "MSBuild error. Verify the .sln or .vcxproj file path and configuration.",
+        (~/(?i).*BUILD FAILED.*/): "General build failure. Check preceding logs for specific errors.",
+        (~/(?i).*Access is denied.*/): "Permission issue. Run Jenkins agent with appropriate access rights.",
+        (~/(?i).*No such file or directory.*/): "Missing file. Verify all paths and dependencies are correct.",
+        (~/(?i).*cannot open include file:.*No such file or directory.*/): "Missing header. Ensure all include paths are properly set.",
+        (~/(?i).*Undefined reference to .*/): "Linking issue. Ensure all required object files and libraries are included.",
+        (~/(?i).*java.lang.OutOfMemoryError.*/): "Java memory issue. Try increasing heap size.",
+        (~/(?i).*Timeout exceeded.*/): "Execution timeout. Optimize the script or increase the timeout limit.",
+        (~/(?i).*not a git repository.*/): "Repository issue. Check the Git configuration and URL.",
+        (~/(?i).*could not resolve host.*/): "DNS issue. Ensure the hostname is correct and reachable.",
+        (~/(?i).*Failed to connect to .* port .*/): "Network issue. Ensure the service is running and accessible."
     ]
 
-    // Error Table
-    def errorTable = new StringBuilder()
-    def suggestionTable = new StringBuilder()
-    int errorCount = 1
-
-    errorTable << "<h3>Error Summary:</h3><table border='1' cellpadding='5' cellspacing='0'><tr><th>Error</th><th>Description</th></tr>"
-    suggestionTable << "<h3>Suggestions:</h3><table border='1' cellpadding='5' cellspacing='0'><tr><th>Error</th><th>Suggestion</th></tr>"
-
-    errorLines.each { line ->
-        def errorKey = "Error ${errorCount}"
-        errorTable << "<tr><td>${errorKey}</td><td>${line}</td></tr>"
-
-        def matched = false
-        suggestionMap.each { pattern, suggestion ->
-            if (line ==~ pattern) {
-                suggestionTable << "<tr><td>${errorKey}</td><td>${suggestion}</td></tr>"
-                matched = true
-            }
+    // Collect matched errors
+    errorSuggestions.eachWithIndex { pattern, suggestion, i ->
+        if (log =~ pattern) {
+            errors << [id: "Error ${errors.size() + 1}", pattern: pattern.pattern(), suggestion: suggestion]
         }
-        if (!matched) {
-            suggestionTable << "<tr><td>${errorKey}</td><td>No suggestion available. Please check logs.</td></tr>"
-        }
-        errorCount++
     }
 
-    errorTable << "</table>"
-    suggestionTable << "</table>"
+    // Format HTML tables
+    def errorTable = errors.collect { "<tr><td>${it.id}</td><td>${it.pattern}</td></tr>" }.join("\n")
+    def suggestionTable = errors.collect { "<tr><td>${it.id}</td><td>${it.suggestion}</td></tr>" }.join("\n")
 
+    def subject = "Build ${buildStatus}: ${jobName} #${buildNumber}"
     def body = """
-    <html>
-    <body>
-        <h2>Build ${buildStatus}: ${jobName} #${buildNumber}</h2>
-        <p>View the build: <a href="${buildUrl}">${buildUrl}</a></p>
-        ${errorTable}
-        <br/>
-        ${suggestionTable}
-    </body>
-    </html>
+        <h2>Build ${buildStatus}</h2>
+        <p><b>Project:</b> ${jobName}<br>
+        <b>Build #:</b> ${buildNumber}<br>
+        <b>URL:</b> <a href="${buildUrl}">${buildUrl}</a></p>
+        <h3>Error Summary:</h3>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <tr><th>Error</th><th>Description</th></tr>
+            ${errorTable}
+        </table>
+        <h3>Suggestions:</h3>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <tr><th>Error</th><th>Suggestion</th></tr>
+            ${suggestionTable}
+        </table>
     """
 
     emailext(
         subject: subject,
         body: body,
-        recipientProviders: [[$class: 'DevelopersRecipientProvider']],
         to: recipient,
         mimeType: 'text/html'
     )
