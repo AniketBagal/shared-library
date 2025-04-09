@@ -53,7 +53,7 @@ def extractErrorsFromConsole() {
         Pattern.compile("0 errors", Pattern.CASE_INSENSITIVE),
         Pattern.compile("^Note:", Pattern.CASE_INSENSITIVE),
         Pattern.compile("^\\[INFO\\]", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("^\\s*$") // Empty lines
+        Pattern.compile("^\\\\s*\$") // Empty lines (escaped properly)
     ]
 
     def errorLines = []
