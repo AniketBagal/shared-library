@@ -8,7 +8,7 @@ def call(Map config = [:]) {
     def errorTable = ""
     if (!config.success) {
         def errorLines = extractErrorsFromConsole()
-        if (errorLines) {
+        if (errorLines && errorLines.size() > 0) {
             errorTable = """
                 <h3>Error Summary:</h3>
                 <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
@@ -20,7 +20,7 @@ def call(Map config = [:]) {
                 </table>
             """
         } else {
-            errorTable = "<p><b>No error messages found in the console log.</b></p>"
+            errorTable = "<p><b>No relevant error messages found in the console log.</b></p>"
         }
     }
 
@@ -44,15 +44,15 @@ def call(Map config = [:]) {
     )
 }
 
-// Utility method to extract filtered error lines from the Jenkins console log
 def extractErrorsFromConsole() {
     def errorKeywords = ["error", "failed", "exception", "not recognized", "not found"]
     def ignorePatterns = [
-        ~/0 error\(s\)/,
-        ~/0 errors/,
-        ~/^Note:/,
-        ~/^\[INFO\]/,
-        ~/^\s*$/ // empty lines
+        ~/.*0 error\(s\).*/i,
+        ~/.*0 errors.*/i,
+        ~/.*0 warnings.*/i,
+        ~/^Note:.*/i,
+        ~/^\\[INFO\\].*/i,
+        ~/^\\s*$/ // Empty lines
     ]
 
     def errorLines = []
@@ -75,7 +75,6 @@ def extractErrorsFromConsole() {
     return errorLines
 }
 
-// Helper function to generate error table rows with index
 def generateErrorTableRows(List errorLines) {
     def rows = ""
     for (int i = 0; i < errorLines.size(); i++) {
