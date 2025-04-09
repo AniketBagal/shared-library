@@ -47,13 +47,14 @@ def call(Map config = [:]) {
 def extractErrorsFromConsole() {
     def errorKeywords = ["error", "failed", "exception", "not recognized", "not found"]
     def ignorePatterns = [
-        ~/.*0 error\(s\).*/i,
-        ~/.*0 errors.*/i,
-        ~/.*0 warnings.*/i,
-        ~/^Note:.*/i,
-        ~/^\\[INFO\\].*/i,
-        ~/^\\s*$/ // Empty lines
-    ]
+    ~/(?i).*0 error\(s\).*/,
+    ~/(?i).*0 errors.*/,
+    ~/(?i).*0 warnings.*/,
+    ~/^Note:.*/,
+    ~/^\[INFO\].*/,
+    ~/^\s*$/ // Empty lines
+]
+
 
     def errorLines = []
 
