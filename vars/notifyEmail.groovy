@@ -1,8 +1,9 @@
 def call(Map config = [:]) {
     def subject = config.success ? "Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}" 
                                  : "Build FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+
     def color = config.success ? "green" : "red"
-    def suggestion = config.success ? "Great job! No issues detected." : (config.suggestion ?: "Please check Jenkins console output for more info.")
+    def suggestion = config.success ? "Great job! No issues detected." : (config.suggestion ?: "Please check the Jenkins console output for more information.")
 
     def errorTable = ""
     if (!config.success) {
@@ -10,13 +11,16 @@ def call(Map config = [:]) {
         if (errorLines) {
             errorTable = """
                 <h3>Error Summary:</h3>
-                <table border="1" cellpadding="5" cellspacing="0">
-                    <tr><th>#</th><th>Error Line</th></tr>
+                <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+                    <tr style="background-color: #f2f2f2;">
+                        <th>Error</th>
+                        <th>Error Description</th>
+                    </tr>
+                    ${errorLines.collectWithIndex { line, i -> "<tr><td>Error ${i + 1}</td><td>${line}</td></tr>" }.join("\n")}
+                </table>
             """
-            errorLines.eachWithIndex { line, i ->
-                errorTable += "<tr><td>${i + 1}</td><td>${line}</td></tr>"
-            }
-            errorTable += "</table><br/>"
+        } else {
+            errorTable = "<p><b>No error messages found in the console log.</b></p>"
         }
     }
 
@@ -29,8 +33,8 @@ def call(Map config = [:]) {
                 <p><b>Project:</b> ${env.JOB_NAME}</p>
                 <p><b>Build #:</b> ${env.BUILD_NUMBER}</p>
                 <p><b>Status:</b> ${config.success ? 'Success' : 'Failure'}</p>
-                ${errorTable}
                 <p><b>Suggestions:</b> ${suggestion}</p>
+                ${errorTable}
                 <!-- <p><a href="${env.BUILD_URL}">View Build</a></p> -->
             </body>
         </html>
@@ -40,15 +44,27 @@ def call(Map config = [:]) {
     )
 }
 
+// Utility method for extracting filtered error lines from the Jenkins log
 def extractErrorsFromConsole() {
     def errorKeywords = ["error", "failed", "exception", "not recognized", "not found"]
+    def ignorePatterns = [
+        ~/0 error\(s\)/i,
+        ~/0 errors/i,
+        ~/^Note:/i,
+        ~/^\[INFO\]/i,
+        ~/^\s*$/            // empty lines
+    ]
+
     def errorLines = []
 
     try {
-        def logLines = currentBuild.rawBuild.getLog(100000) // gets full log up to 100k lines
+        def logLines = currentBuild.rawBuild.getLog(100000)
         logLines.each { line ->
             def lowerLine = line.toLowerCase()
-            if (errorKeywords.any { keyword -> lowerLine.contains(keyword) }) {
+            def isKeywordMatch = errorKeywords.any { keyword -> lowerLine.contains(keyword) }
+            def isIgnored = ignorePatterns.any { pattern -> line ==~ pattern }
+
+            if (isKeywordMatch && !isIgnored) {
                 errorLines << line.trim()
             }
         }
