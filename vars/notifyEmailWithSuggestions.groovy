@@ -78,15 +78,15 @@ def extractErrorsFromConsole() {
 
 def getSuggestionForError(String errorLine) {
     def suggestionsMap = [
-        ~/.*not recognized as an internal or external command.*/ : "Check if the tool/command is installed and added to PATH.",
-        ~/.*No such file or directory.*/                         : "Ensure the referenced file exists and the path is correct.",
-        ~/.*Permission denied.*/                                 : "Check file or directory permissions.",
-        ~/.*Connection timed out.*/                              : "Verify network connectivity and endpoint availability.",
-        ~/.*Compilation failed.*/                                : "Check for syntax errors or missing dependencies.",
-        ~/.*java.lang.NullPointerException.*/                    : "Ensure all objects are initialized before use.",
-        ~/.*Build step.*failed.*/                                : "Review the failed step's logs for root cause.",
-        ~/.*error: cannot find symbol.*/                         : "Check for missing imports or undefined variables/methods."
-    ]
+    (~/.*not recognized as an internal or external command.*/) : "Check if the tool/command is installed and added to PATH.",
+    (~/.*No such file or directory.*/)                         : "Ensure the referenced file exists and the path is correct.",
+    (~/.*Permission denied.*/)                                 : "Check file or directory permissions.",
+    (~/.*Connection timed out.*/)                              : "Verify network connectivity and endpoint availability.",
+    (~/.*Compilation failed.*/)                                : "Check for syntax errors or missing dependencies.",
+    (~/.*java.lang.NullPointerException.*/)                    : "Ensure all objects are initialized before use.",
+    (~/.*Build step.*failed.*/)                                : "Review the failed step's logs for root cause.",
+    (~/.*error: cannot find symbol.*/)                         : "Check for missing imports or undefined variables/methods."
+]
 
     for (pattern in suggestionsMap.keySet()) {
         if (errorLine ==~ pattern) {
