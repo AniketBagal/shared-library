@@ -76,8 +76,7 @@ def extractErrorsFromConsole() {
     return errorLines
 }
 
-def getSuggestionForError(String errorLine) {
-    def suggestionsMap = [
+def suggestionsMap = [
     (~/.*not recognized as an internal or external command.*/) : "Check if there is any typing mistake or check if the tool/command is installed and added to PATH.",
     (~/.*No such file or directory.*/)                         : "Ensure the referenced file exists and the path is correct.",
     (~/.*Permission denied.*/)                                 : "Check file or directory permissions.",
@@ -85,7 +84,10 @@ def getSuggestionForError(String errorLine) {
     (~/.*Compilation failed.*/)                                : "Check for syntax errors or missing dependencies.",
     (~/.*java.lang.NullPointerException.*/)                    : "Ensure all objects are initialized before use.",
     (~/.*Build step.*failed.*/)                                : "Review the failed step's logs for root cause.",
-    (~/.*error: cannot find symbol.*/)                         : "Check for missing imports or undefined variables/methods."
+    (~/.*error: cannot find symbol.*/)                         : "Check for missing imports or undefined variables/methods.",  // <-- comma added here
+    (~/.*error MSB.*: The command exited with code [1-9].*/)   : "Check the build step in the .vcxproj or related scripts.",
+    (~/.*fatal error LNK\d+:.*/)                               : "Verify your linker inputs and library dependencies.",
+    (~/.*C\d{4}: .*/)                                          : "This is a compiler error. Look up the error code (e.g., C1004) for more details."
 ]
 
     for (pattern in suggestionsMap.keySet()) {
