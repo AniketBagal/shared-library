@@ -13,8 +13,8 @@ def call(Map config = [:]) {
                 <h3>Error Summary:</h3>
                 <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
                     <tr style="background-color: #f2f2f2;">
-                        <th>Error</th>
-                        <th>Error Description</th>
+                        <th>#</th>
+                        <th>Error Message</th>
                         <th>Suggestion</th>
                     </tr>
                     ${generateErrorTableRows(errorLines)}
@@ -76,19 +76,20 @@ def extractErrorsFromConsole() {
     return errorLines
 }
 
-def suggestionsMap = [
-    (~/.*not recognized as an internal or external command.*/) : "Check if there is any typing mistake or check if the tool/command is installed and added to PATH.",
-    (~/.*No such file or directory.*/)                         : "Ensure the referenced file exists and the path is correct.",
-    (~/.*Permission denied.*/)                                 : "Check file or directory permissions.",
-    (~/.*Connection timed out.*/)                              : "Verify network connectivity and endpoint availability.",
-    (~/.*Compilation failed.*/)                                : "Check for syntax errors or missing dependencies.",
-    (~/.*java.lang.NullPointerException.*/)                    : "Ensure all objects are initialized before use.",
-    (~/.*Build step.*failed.*/)                                : "Review the failed step's logs for root cause.",
-    (~/.*error: cannot find symbol.*/)                         : "Check for missing imports or undefined variables/methods.",  // <-- comma added here
-    (~/.*error MSB.*: The command exited with code [1-9].*/)   : "Check the build step in the .vcxproj or related scripts.",
-    (~/.*fatal error LNK\d+:.*/)                               : "Verify your linker inputs and library dependencies.",
-    (~/.*C\d{4}: .*/)                                          : "This is a compiler error. Look up the error code (e.g., C1004) for more details."
-]
+def getSuggestionForError(String errorLine) {
+    def suggestionsMap = [
+        (~/.*not recognized as an internal or external command.*/) : "Check if the tool is installed and added to PATH.",
+        (~/.*No such file or directory.*/)                         : "Ensure the file path is correct and the file exists.",
+        (~/.*Permission denied.*/)                                 : "Check file/directory permissions.",
+        (~/.*Connection timed out.*/)                              : "Verify network connectivity and target availability.",
+        (~/.*Compilation failed.*/)                                : "Check for syntax errors or missing dependencies.",
+        (~/.*java.lang.NullPointerException.*/)                    : "Make sure all objects are initialized.",
+        (~/.*Build step.*failed.*/)                                : "Review the step’s logs for more info.",
+        (~/.*error: cannot find symbol.*/)                         : "Check for missing imports or undefined variables.",
+        (~/.*error MSB.*: The command exited with code [1-9].*/)   : "Check .vcxproj or related scripts for issues.",
+        (~/.*fatal error LNK\d+:.*/)                               : "Verify linker settings and dependencies.",
+        (~/.*C\d{4}: .*/)                                          : "Lookup compiler error code (e.g., C1004) for details."
+    ]
 
     for (pattern in suggestionsMap.keySet()) {
         if (errorLine ==~ pattern) {
@@ -96,7 +97,7 @@ def suggestionsMap = [
         }
     }
 
-    return "Please refer to the console log or documentation for more details."
+    return "Refer to the console log or documentation for more information."
 }
 
 def generateErrorTableRows(List errorLines) {
@@ -104,7 +105,7 @@ def generateErrorTableRows(List errorLines) {
     for (int i = 0; i < errorLines.size(); i++) {
         def error = errorLines[i]
         def suggestion = getSuggestionForError(error)
-        rows += "<tr><td>Error ${i + 1}</td><td>${error}</td><td>${suggestion}</td></tr>\n"
+        rows += "<tr><td>${i + 1}</td><td>${error}</td><td>${suggestion}</td></tr>\n"
     }
     return rows
 }
