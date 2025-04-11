@@ -105,11 +105,23 @@ def getSuggestionForError(String errorLine) {
 }
 
 def generateErrorTableRows(List errorLines) {
+    def seenErrors = [] as Set
     def rows = ""
-    for (int i = 0; i < errorLines.size(); i++) {
-        def error = errorLines[i]
+    int index = 1
+
+    errorLines.each { error ->
         def suggestion = getSuggestionForError(error)
-        rows += "<tr><td>${i + 1}</td><td>${error}</td><td>${suggestion}</td></tr>\n"
+
+        // Combine error + suggestion as a unique key
+        def key = "${suggestion}"
+
+        // Only add the first instance of an error type per suggestion
+        if (!seenErrors.contains(key)) {
+            rows += "<tr><td>${index}</td><td>${error}</td><td>${suggestion}</td></tr>\n"
+            seenErrors << key
+            index++
+        }
     }
+
     return rows
 }
