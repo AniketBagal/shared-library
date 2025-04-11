@@ -56,7 +56,7 @@ def extractErrorsFromConsole() {
         ~/^\s*$/ // Empty lines
     ]
 
-    def errorLines = []
+    def errorSet = [] as LinkedHashSet  // Preserve order, remove duplicates
 
     try {
         def logLines = currentBuild.rawBuild.getLog(100000)
@@ -66,14 +66,14 @@ def extractErrorsFromConsole() {
             def isIgnored = ignorePatterns.any { pattern -> (line ==~ pattern) }
 
             if (isKeywordMatch && !isIgnored) {
-                errorLines << line.trim()
+                errorSet << line.trim()
             }
         }
     } catch (e) {
-        errorLines << "Could not parse console output: ${e.message}"
+        errorSet << "Could not parse console output: ${e.message}"
     }
 
-    return errorLines
+    return errorSet.toList()
 }
 
 def getSuggestionForError(String errorLine) {
@@ -88,7 +88,11 @@ def getSuggestionForError(String errorLine) {
         (~/.*error: cannot find symbol.*/)                         : "Check for missing imports or undefined variables.",
         (~/.*error MSB.*: The command exited with code [1-9].*/)   : "Check .vcxproj or related scripts for issues.",
         (~/.*fatal error LNK\d+:.*/)                               : "Verify linker settings and dependencies.",
-        (~/.*C\d{4}: .*/)                                          : "Lookup compiler error code (e.g., C1004) for details."
+        (~/.*C\d{4}: .*/)                                          : "Lookup compiler error code (e.g., C1004) for details.",
+        (~/.*Authentication failed.*/)                             : "Check your Git credentials or token validity.",
+        (~/.*Failed to fetch from.*/)                              : "Verify Git URL and credentials. Ensure remote repo is accessible.",
+        (~/.*Maximum checkout retry attempts reached.*/)           : "Verify SCM settings or increase retry attempts.",
+        (~/.*Logon failed, use ctrl\+c to cancel.*/)               : "Make sure Git credentials are set up correctly in Jenkins."
     ]
 
     for (pattern in suggestionsMap.keySet()) {
