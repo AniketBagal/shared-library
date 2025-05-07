@@ -1,12 +1,14 @@
 def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     // Generate the AI prompt (limit log to 5000 chars for performance)
     def prompt = """
-You are an expert DevOps assistant.
+Analyze the following Jenkins log
+ Give the important Errors and its suggestion in formate as
+ Error 1 :
+ Suggestion :
 
-Please analyze the following Jenkins build log and:
-1. Identify the most important and meaningful build errors or faults.
-2. Provide suggestions or fixes for each error in a clean and structured HTML table format with two columns: "Error / Fault" and "Suggested Fix".
-
+  Error 2 :
+ Suggestion :
+ likewise
 Jenkins Log:
 ${buildLog.take(5000)}
 """
@@ -26,7 +28,7 @@ ${buildLog.take(5000)}
 
     // Run Ollama and capture response
     def response = bat(
-        script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
+        script: "\"${ollamaPath}\" run phi3:latest  < prompt.txt",
         returnStdout: true
     ).trim()
 
@@ -64,7 +66,7 @@ ${buildLog.take(5000)}
     def emailBody = """
 <html>
   <body>
-    <h2>🔧 Jenkins Build Analysis Report</h2>
+    <h2>Jenkins Build Analysis Report</h2>
     <p>Below is the analysis provided by <b>deepseek-coder:6.7b</b> based on your Jenkins build log:</p>
     <table border='1' cellpadding='10' cellspacing='0' style='border-collapse: collapse;'>
       <tr style='background-color:#f2f2f2;'>
