@@ -14,28 +14,30 @@ ${buildLog.take(5000)}
     // Save prompt to a file
     writeFile file: 'prompt.txt', text: prompt
 
-    // Check if ollama is available
-    def ollamaInstalled = bat(script: 'where ollama', returnStatus: true) == 0
-    if (!ollamaInstalled) {
-        echo "Ollama is not installed or not available in PATH."
+    // Define full path to Ollama
+    def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
+
+    // Check if Ollama is available at the given path
+    if (!fileExists(ollamaPath)) {
+        echo "Ollama is not found at: ${ollamaPath}"
         currentBuild.result = 'FAILURE'
         return
     }
 
-    // Run ollama and capture the response
+    // Run Ollama and capture response
     def response = bat(
-        script: 'ollama run deepseek-coder:6.7b < prompt.txt',
+        script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
         returnStdout: true
     ).trim()
 
-    // Escape HTML-sensitive characters
+    // Escape HTML characters for safe display
     def safeResponse = response
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
 
-    // Prepare the HTML email content
+    // Build email content
     def emailBody = """
 <html>
   <body>
@@ -48,7 +50,7 @@ ${safeResponse}
 </html>
 """
 
-    // Send the analysis email
+    // Send email
     emailext(
         to: toEmail,
         subject: "Jenkins Build Analysis - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
