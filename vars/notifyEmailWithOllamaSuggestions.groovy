@@ -25,8 +25,18 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     ${buildLog.take(5000)}
     """
 
-    // Save prompt to a file
-    writeFile file: 'prompt.txt', text: prompt
+    // Debugging: Print prompt content to the console
+    echo "Prompt content being written to file: ${prompt.take(500)}..." // Log the first 500 chars of the prompt for debugging
+
+    // Save prompt to a file (try writing in the workspace directory)
+    try {
+        writeFile file: 'prompt.txt', text: prompt
+        echo "Prompt written to prompt.txt"
+    } catch (Exception e) {
+        echo "Failed to write prompt to file: ${e.message}"
+        currentBuild.result = 'FAILURE'
+        return
+    }
 
     // Define full path to Ollama
     def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
@@ -39,10 +49,24 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     }
 
     // Run Ollama and capture response
-    def response = bat(
-        script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
-        returnStdout: true
-    ).trim()
+    def response = ''
+    try {
+        response = bat(
+            script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
+            returnStdout: true
+        ).trim()
+    } catch (Exception e) {
+        echo "Failed to run Ollama: ${e.message}"
+        currentBuild.result = 'FAILURE'
+        return
+    }
+
+    // Check if response is valid
+    if (!response) {
+        echo "Ollama did not return a valid response."
+        currentBuild.result = 'FAILURE'
+        return
+    }
 
     // Escape HTML characters for safe display
     def safeResponse = response
