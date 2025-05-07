@@ -12,16 +12,15 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
 
     // Generate the AI prompt
     def prompt = """
-    You are a professional DevOps AI assistant.
+    You are an expert DevOps assistant.
 
-    Task:
-    1. From the following Jenkins build log, extract the key ERROR lines or failure messages (maximum 6–8 entries).
-    2. For each ERROR line, give a brief 2–3 line suggestion for fixing the issue.
-    3. Output format:
-       Error: <actual error line>
-       Suggestion: <concise fix or action>
-
-    Format your response clearly, with no extra text, no table, no explanations.
+    Please analyze the following Jenkins build log and:
+    1. Identify the most important and meaningful build errors or faults.
+    2. Provide suggestions or fixes for each error in clear and concise sentences.
+    3. Format response in plain lines (not a table), like:
+    Error 1: short title
+    Description: short explanation
+    Suggestion: short fix
 
     Jenkins Log:
     ${buildLog.take(5000)}
@@ -83,8 +82,9 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
       <body>
         <h2>Jenkins Build Analysis Report</h2>
         <p><b>Model Used:</b> deepseek-coder:6.7b</p>
+        <p><b>Analysis:</b></p>
         <pre style="background-color:#f4f4f4; padding:10px; border:1px solid #ccc; font-family: monospace; white-space: pre-wrap;">
-${safeResponse}
+        ${safeResponse}
         </pre>
       </body>
     </html>
