@@ -1,14 +1,17 @@
 def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     // Generate the AI prompt (limit log to 5000 chars for performance)
     def prompt = """
-Analyze the following Jenkins log
- Give the important Errors and its suggestion in formate as
- Error 1 :
- Suggestion :
+You are an expert DevOps assistant.
 
-  Error 2 :
- Suggestion :
- likewise
+Please analyze the following Jenkins build log and:
+1. Identify the most important and meaningful build errors or faults.
+2. Provide suggestions or fixes for each error in a clean and structured way.
+3. Keep the response format exactly like:
+Error 1:
+<1-2 line message>
+<1-2 line suggestion or fix>
+Repeat for Error 2, Error 3, etc.
+
 Jenkins Log:
 ${buildLog.take(5000)}
 """
@@ -28,53 +31,27 @@ ${buildLog.take(5000)}
 
     // Run Ollama and capture response
     def response = bat(
-        script: "\"${ollamaPath}\" run phi3:latest  < prompt.txt",
+        script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
         returnStdout: true
     ).trim()
 
-    // Parse AI response into HTML table
-    def tableRows = ''
-    def lines = response.split('\n')
-    def error = ''
-    def suggestions = []
+    // Escape HTML characters for safe display
+    def safeResponse = response
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
 
-    lines.each { line ->
-        if (line.toLowerCase().contains("error") || line.toLowerCase().contains("failed")) {
-            if (error) {
-                // Add previous error-suggestion pair to table
-                tableRows += "<tr><td>${error}</td><td><ul>${suggestions.collect { "<li>${it}</li>" }.join('')}</ul></td></tr>\n"
-                suggestions = []
-            }
-            error = line.trim()
-        } else if (line.trim()) {
-            suggestions << line.trim()
-        }
-    }
-
-    // Add last error-suggestion pair
-    if (error && suggestions) {
-        tableRows += "<tr><td>${error}</td><td><ul>${suggestions.collect { "<li>${it}</li>" }.join('')}</ul></td></tr>\n"
-    }
-
-    // Default fallback if parsing fails
-    if (!tableRows) {
-        tableRows = "<tr><td colspan='2'>No structured output found. Raw response:</td></tr>" +
-                    "<tr><td colspan='2'><pre>${response.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</pre></td></tr>"
-    }
-
-    // Build email content
+    // Build email content with preserved response formatting
     def emailBody = """
 <html>
   <body>
-    <h2>Jenkins Build Analysis Report</h2>
-    <p>Below is the analysis provided by <b>deepseek-coder:6.7b</b> based on your Jenkins build log:</p>
-    <table border='1' cellpadding='10' cellspacing='0' style='border-collapse: collapse;'>
-      <tr style='background-color:#f2f2f2;'>
-        <th>Error / Fault</th>
-        <th>Suggested Fix</th>
-      </tr>
-      ${tableRows}
-    </table>
+    <h2>🛠 Jenkins Build Analysis Report</h2>
+    <p><b>Model Used:</b> deepseek-coder:6.7b</p>
+    <p><b>Analysis:</b></p>
+    <pre style="background-color:#f4f4f4; padding:10px; border:1px solid #ccc; font-family: monospace; white-space: pre-wrap;">
+${safeResponse}
+    </pre>
   </body>
 </html>
 """
