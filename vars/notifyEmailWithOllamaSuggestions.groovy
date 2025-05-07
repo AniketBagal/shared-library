@@ -12,7 +12,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     """
 
     // Send to Ollama and get response
-    def response = sh(
+    def response = bat(
         script: """ollama run deepseek-coder:6.7b "${prompt.replace('"', '\\"')}" """,
         returnStdout: true
     ).trim()
