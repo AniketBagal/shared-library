@@ -1,13 +1,14 @@
 def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
-    // Ensure the log is not empty before proceeding
+    // Debug: Check if the build log is null or empty
     if (!buildLog?.trim()) {
-        echo "Build log is empty. Please provide valid Jenkins build log."
+        echo "Build log is empty or null."
         currentBuild.result = 'FAILURE'
         return
     }
 
     // Log content (for debugging purposes)
-    echo "Build Log: ${buildLog.take(200)}..." // Print first 200 chars for debugging
+    echo "Build Log Length: ${buildLog.length()}"
+    echo "Build Log Preview: ${buildLog.take(200)}"  // Preview the first 200 characters
 
     // Generate the AI prompt
     def prompt = """
@@ -25,13 +26,13 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     ${buildLog.take(5000)}
     """
 
-    // Debugging: Print prompt content to the console
-    echo "Prompt content being written to file: ${prompt.take(500)}..." // Log the first 500 chars of the prompt for debugging
+    // Debug: Log the generated prompt (only a preview)
+    echo "Generated prompt: ${prompt.take(500)}"
 
-    // Save prompt to a file (try writing in the workspace directory)
+    // Save prompt to a file (in the current workspace)
     try {
         writeFile file: 'prompt.txt', text: prompt
-        echo "Prompt written to prompt.txt"
+        echo "Prompt successfully written to prompt.txt"
     } catch (Exception e) {
         echo "Failed to write prompt to file: ${e.message}"
         currentBuild.result = 'FAILURE'
