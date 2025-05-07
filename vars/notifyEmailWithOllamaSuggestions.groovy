@@ -30,12 +30,35 @@ ${buildLog.take(5000)}
         returnStdout: true
     ).trim()
 
-    // Escape HTML characters for safe display
-    def safeResponse = response
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
+    // Parse AI response into HTML table
+    def tableRows = ''
+    def lines = response.split('\n')
+    def error = ''
+    def suggestions = []
+
+    lines.each { line ->
+        if (line.toLowerCase().contains("error") || line.toLowerCase().contains("failed")) {
+            if (error) {
+                // Add previous error-suggestion pair to table
+                tableRows += "<tr><td>${error}</td><td><ul>${suggestions.collect { "<li>${it}</li>" }.join('')}</ul></td></tr>\n"
+                suggestions = []
+            }
+            error = line.trim()
+        } else if (line.trim()) {
+            suggestions << line.trim()
+        }
+    }
+
+    // Add last error-suggestion pair
+    if (error && suggestions) {
+        tableRows += "<tr><td>${error}</td><td><ul>${suggestions.collect { "<li>${it}</li>" }.join('')}</ul></td></tr>\n"
+    }
+
+    // Default fallback if parsing fails
+    if (!tableRows) {
+        tableRows = "<tr><td colspan='2'>No structured output found. Raw response:</td></tr>" +
+                    "<tr><td colspan='2'><pre>${response.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</pre></td></tr>"
+    }
 
     // Build email content
     def emailBody = """
@@ -43,9 +66,13 @@ ${buildLog.take(5000)}
   <body>
     <h2>🔧 Jenkins Build Analysis Report</h2>
     <p>Below is the analysis provided by <b>deepseek-coder:6.7b</b> based on your Jenkins build log:</p>
-    <pre style="background-color:#f4f4f4; padding:10px; border:1px solid #ccc; white-space: pre-wrap;">
-${safeResponse}
-    </pre>
+    <table border='1' cellpadding='10' cellspacing='0' style='border-collapse: collapse;'>
+      <tr style='background-color:#f2f2f2;'>
+        <th>Error / Fault</th>
+        <th>Suggested Fix</th>
+      </tr>
+      ${tableRows}
+    </table>
   </body>
 </html>
 """
