@@ -18,9 +18,9 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     1. Identify the most important and meaningful build errors or faults.
     2. Provide suggestions or fixes for each error in clear and concise sentences.
     3. Format response in plain lines (not a table), like:
-    Error 1: short title
-    Description: short explanation
-    Suggestion: short fix
+    Error 1: <actual error line in jenkins log>
+   
+    Suggestion: <short fix> single one
 
     Jenkins Log:
     ${buildLog.take(5000)}
