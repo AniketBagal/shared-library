@@ -15,8 +15,8 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     You are an expert DevOps assistant.
 
     Please analyze the following Jenkins build log and:
-    1. Identify the most important and meaningful build errors or faults.
-    2. Provide suggestions or fixes for each error in clear and concise sentences.
+    1. Identify the most important,Unique and meaningful build errors or faults.
+    2. Provide one suggestion or fixe for each error in clear and concise sentences.
     3. Format response in plain lines (not a table), like:
     Error 1: <actual error line in jenkins log>
    
