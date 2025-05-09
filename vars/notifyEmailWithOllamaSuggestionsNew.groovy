@@ -6,11 +6,26 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     }
 
     def errorLines = buildLog.readLines().findAll { line ->
-        line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found)/
+        line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found|fatal error)/
     }
 
     def selectedErrors = errorLines.take(10)
-    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'UNSTABLE'
+
+    // Determine severity
+    def criticalPatterns = [
+        /.*error:.*/i,
+        /.*failed.*/i,
+        /.*not found.*/i,
+        /.*undefined.*/i,
+        /.*command not found.*/i,
+        /.*fatal error.*/i
+    ]
+
+    def isFailure = selectedErrors.any { line ->
+        criticalPatterns.any { pattern -> line ==~ pattern }
+    }
+
+    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : (isFailure ? 'FAILURE' : 'UNSTABLE')
     currentBuild.result = buildStatus
 
     String formattedResponse = ""
@@ -78,7 +93,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
             return
         }
 
-        // Sanitize response
+        // Clean and format model response
         response = response.readLines().findAll {
             !(it.contains("ollama.exe") || it.trim().isEmpty() || it == "0")
         }.join("\n")
