@@ -6,12 +6,12 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     }
 
     // Improved regex: avoid false positives like 'not recognized'
-    def errorLines = buildLog.readLines().findAll { line ->
+    def errorLines = buildLog.readLines().findAll { line -> 
         line =~ /(?i)(error:|exception|fatal|build failed|undefined reference|compilation terminated)/
     }
 
     def selectedErrors = errorLines.take(10)
-    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'UNSTABLE'  // no longer forces FAILURE
+    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'FAILURE'  // Build is SUCCESS only if no errors are found
     echo "Detected build status from log: ${buildStatus}"
 
     String formattedResponse = ""
@@ -86,7 +86,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         }
 
         def blocks = response.split(/(?i)(?=Error \d+:)/)
-        blocks.each { block ->
+        blocks.each { block -> 
             if (block.trim()) {
                 def parts = block.split(/(?i)Suggestion:/)
                 def errorPart = parts[0]?.trim()
@@ -114,6 +114,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         """
     }
 
+    // Send the email with the appropriate build status
     emailext(
         to: toEmail,
         subject: "Jenkins Build ${buildStatus} - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
