@@ -40,8 +40,8 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     }
 
     // Define full path to Ollama
-    //def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
-    def ollamaPath = 'C:\\Users\\Admin\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
+    def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
+    //def ollamaPath = 'C:\\Users\\Admin\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
 
     // Check if Ollama is available at the given path
     if (!fileExists(ollamaPath)) {
