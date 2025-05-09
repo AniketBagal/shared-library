@@ -5,14 +5,13 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         return
     }
 
-    // Improved regex: avoid false positives like 'not recognized'
     def errorLines = buildLog.readLines().findAll { line ->
-        line =~ /(?i)(error:|exception|fatal|build failed|undefined reference|compilation terminated)/
+        line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found)/
     }
 
     def selectedErrors = errorLines.take(10)
-    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'UNSTABLE'  // no longer forces FAILURE
-    echo "Detected build status from log: ${buildStatus}"
+    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'UNSTABLE'
+    currentBuild.result = buildStatus
 
     String formattedResponse = ""
     String emailBody = ""
@@ -21,7 +20,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         echo "No errors detected in the build log."
 
         formattedResponse = """
-            <p style="color:#006600;"><strong>Congratulations!</strong> The build completed successfully with 0 critical errors.</p>
+            <p style="color:#006600;"><strong>🎉 Congratulations!</strong> The build completed successfully with 0 errors.</p>
         """
 
         emailBody = """
@@ -70,7 +69,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         def response = ''
         try {
             response = bat(
-                script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
+                script: "@echo off && type prompt.txt | \"${ollamaPath}\" run deepseek-coder:6.7b",
                 returnStdout: true
             ).trim()
         } catch (Exception e) {
@@ -79,18 +78,25 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
             return
         }
 
-        if (!response) {
-            echo "Ollama did not return a valid response."
-            currentBuild.result = 'FAILURE'
-            return
+        // Sanitize response
+        response = response.readLines().findAll {
+            !(it.contains("ollama.exe") || it.trim().isEmpty() || it == "0")
+        }.join("\n")
+
+        def htmlEscape = { text ->
+            return text.replace("&", "&amp;")
+                       .replace("<", "&lt;")
+                       .replace(">", "&gt;")
+                       .replace("\"", "&quot;")
+                       .replace("'", "&#39;")
         }
 
         def blocks = response.split(/(?i)(?=Error \d+:)/)
         blocks.each { block ->
             if (block.trim()) {
                 def parts = block.split(/(?i)Suggestion:/)
-                def errorPart = parts[0]?.trim()
-                def suggestionPart = parts.size() > 1 ? parts[1]?.trim() : ""
+                def errorPart = htmlEscape(parts[0]?.trim())
+                def suggestionPart = parts.size() > 1 ? htmlEscape(parts[1]?.trim()) : "No suggestion provided."
 
                 formattedResponse += """
                     <div style="margin-bottom: 20px;">
