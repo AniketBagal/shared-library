@@ -6,101 +6,118 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     }
 
     def errorLines = buildLog.readLines().findAll { line ->
-    line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found)/
+        line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found)/
     }
+
     def selectedErrors = errorLines.take(10)
+    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'FAILURE'
+    currentBuild.result = buildStatus
+
+    String formattedResponse = ""
+    String emailBody = ""
 
     if (selectedErrors.isEmpty()) {
         echo "No errors detected in the build log."
-        currentBuild.result = 'SUCCESS'
-        return
-    }
 
-    echo "Extracted Errors:\n" + selectedErrors.join("\n")
+        formattedResponse = """
+            <p style="color:#006600;"><strong>🎉 Congratulations!</strong> The build completed successfully with 0 errors.</p>
+        """
 
-    def prompt = """
-    You are an expert DevOps assistant.
+        emailBody = """
+        <html>
+          <body style="font-family: Arial, sans-serif;">
+            <h2 style="color:#003366;">Jenkins Build Report</h2>
+            <p><b>Build Status:</b> ${buildStatus}</p>
+            <p><b>Model Used:</b> deepseek-coder:6.7b</p>
+            ${formattedResponse}
+          </body>
+        </html>
+        """
+    } else {
+        echo "Extracted Errors:\n" + selectedErrors.join("\n")
 
-    Analyze the following Jenkins errors and provide a short, clear suggestion or fix for each.
+        def prompt = """
+        You are an expert DevOps assistant.
 
-    Format:
-    Error 1: <actual error line>
-    Suggestion: <one-line fix>
+        Analyze the following Jenkins errors and provide a short, clear suggestion or fix for each.
 
-    Errors:
-    ${selectedErrors.join("\n")}
-    """
+        Format:
+        Error 1: <actual error line>
+        Suggestion: <one-line fix>
 
-    echo "Generated prompt:\n" + prompt.take(500)
+        Errors:
+        ${selectedErrors.join("\n")}
+        """
 
-    try {
-        writeFile file: 'prompt.txt', text: prompt
-        echo "Prompt successfully written to prompt.txt"
-    } catch (Exception e) {
-        echo "Failed to write prompt to file: ${e.message}"
-        currentBuild.result = 'FAILURE'
-        return
-    }
+        echo "Generated prompt:\n" + prompt.take(500)
 
-    def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
-
-    if (!fileExists(ollamaPath)) {
-        echo "Ollama is not found at: ${ollamaPath}"
-        currentBuild.result = 'FAILURE'
-        return
-    }
-
-    def response = ''
-    try {
-        response = bat(
-            script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
-            returnStdout: true
-        ).trim()
-    } catch (Exception e) {
-        echo "Failed to run Ollama: ${e.message}"
-        currentBuild.result = 'FAILURE'
-        return
-    }
-
-    if (!response) {
-        echo "Ollama did not return a valid response."
-        currentBuild.result = 'FAILURE'
-        return
-    }
-
-    // Format response into separate HTML blocks for each Error + Suggestion
-    def formattedResponse = ""
-    def blocks = response.split(/(?i)(?=Error \d+:)/)
-
-    blocks.each { block ->
-        if (block.trim()) {
-            def parts = block.split(/(?i)Suggestion:/)
-            def errorPart = parts[0]?.trim()
-            def suggestionPart = parts.size() > 1 ? parts[1]?.trim() : ""
-
-            formattedResponse += """
-                <div style="margin-bottom: 20px;">
-                    <p style="color:#b30000;"><strong>${errorPart}</strong></p>
-                    <p style="color:#006600;"><strong>Suggestion:</strong> ${suggestionPart}</p>
-                </div>
-            """
+        try {
+            writeFile file: 'prompt.txt', text: prompt
+            echo "Prompt successfully written to prompt.txt"
+        } catch (Exception e) {
+            echo "Failed to write prompt to file: ${e.message}"
+            currentBuild.result = 'FAILURE'
+            return
         }
-    }
 
-    def emailBody = """
-    <html>
-      <body style="font-family: Arial, sans-serif;">
-        <h2 style="color:#003366;">Jenkins Build Analysis Report</h2>
-        <p><b>Model Used:</b> deepseek-coder:6.7b</p>
-        <p><b>Detected Errors and Suggested Fixes:</b></p>
-        ${formattedResponse}
-      </body>
-    </html>
-    """
+        def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
+
+        if (!fileExists(ollamaPath)) {
+            echo "Ollama is not found at: ${ollamaPath}"
+            currentBuild.result = 'FAILURE'
+            return
+        }
+
+        def response = ''
+        try {
+            response = bat(
+                script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
+                returnStdout: true
+            ).trim()
+        } catch (Exception e) {
+            echo "Failed to run Ollama: ${e.message}"
+            currentBuild.result = 'FAILURE'
+            return
+        }
+
+        if (!response) {
+            echo "Ollama did not return a valid response."
+            currentBuild.result = 'FAILURE'
+            return
+        }
+
+        def blocks = response.split(/(?i)(?=Error \d+:)/)
+        blocks.each { block ->
+            if (block.trim()) {
+                def parts = block.split(/(?i)Suggestion:/)
+                def errorPart = parts[0]?.trim()
+                def suggestionPart = parts.size() > 1 ? parts[1]?.trim() : ""
+
+                formattedResponse += """
+                    <div style="margin-bottom: 20px;">
+                        <p style="color:#b30000;"><strong>${errorPart}</strong></p>
+                        <p style="color:#006600;"><strong>Suggestion:</strong> ${suggestionPart}</p>
+                    </div>
+                """
+            }
+        }
+
+        emailBody = """
+        <html>
+          <body style="font-family: Arial, sans-serif;">
+            <h2 style="color:#003366;">Jenkins Build Analysis Report</h2>
+            <p><b>Build Status:</b> ${buildStatus}</p>
+            <p><b>Model Used:</b> deepseek-coder:6.7b</p>
+            <p><b>Detected Errors and Suggested Fixes:</b></p>
+            ${formattedResponse}
+          </body>
+        </html>
+        """
+    }
 
     emailext(
         to: toEmail,
-        subject: "Jenkins Build Analysis - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        subject: "Jenkins Build ${buildStatus} - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
         mimeType: 'text/html',
         body: emailBody
     )
