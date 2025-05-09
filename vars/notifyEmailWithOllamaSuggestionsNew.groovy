@@ -5,13 +5,14 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         return
     }
 
+    // Improved regex: avoid false positives like 'not recognized'
     def errorLines = buildLog.readLines().findAll { line ->
-        line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found)/
+        line =~ /(?i)(error:|exception|fatal|build failed|undefined reference|compilation terminated)/
     }
 
     def selectedErrors = errorLines.take(10)
-    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'FAILURE'
-    currentBuild.result = buildStatus
+    def buildStatus = selectedErrors.isEmpty() ? 'SUCCESS' : 'UNSTABLE'  // no longer forces FAILURE
+    echo "Detected build status from log: ${buildStatus}"
 
     String formattedResponse = ""
     String emailBody = ""
@@ -20,7 +21,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         echo "No errors detected in the build log."
 
         formattedResponse = """
-            <p style="color:#006600;"><strong>🎉 Congratulations!</strong> The build completed successfully with 0 errors.</p>
+            <p style="color:#006600;"><strong>Congratulations!</strong> The build completed successfully with 0 critical errors.</p>
         """
 
         emailBody = """
@@ -48,8 +49,6 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         Errors:
         ${selectedErrors.join("\n")}
         """
-
-        echo "Generated prompt:\n" + prompt.take(500)
 
         try {
             writeFile file: 'prompt.txt', text: prompt
