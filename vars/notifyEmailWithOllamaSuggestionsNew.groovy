@@ -6,9 +6,8 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     }
 
     def errorLines = buildLog.readLines().findAll { line ->
-        line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing)/
+    line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|command not found)/
     }
-
     def selectedErrors = errorLines.take(10)
 
     if (selectedErrors.isEmpty()) {
