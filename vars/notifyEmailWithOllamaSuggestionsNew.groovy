@@ -74,7 +74,8 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
 
     blocks.each { block ->
         if (block.trim()) {
-            def parts = block.split(/(?i)Suggestion:/)
+            // def parts = block.split(/(?i)Suggestion:/)
+             def parts = block.split(/(?i)Errors and their respective Suggestion:/)
             def errorPart = parts[0]?.trim()
             def suggestionPart = parts.size() > 1 ? parts[1]?.trim() : ""
 
@@ -92,7 +93,8 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
       <body style="font-family: Arial, sans-serif;">
         <h2 style="color:#003366;">Jenkins Build Analysis Report</h2>
         <p><b>Model Used:</b> deepseek-coder:6.7b</p>
-        <p><b>Detected Errors and Suggested Fixes:</b></p>
+        // <p><b>Detected Errors and Suggested Fixes:</b></p>
+         <p><b>Loading Ollama Model:</b></p>
         ${formattedResponse}
       </body>
     </html>
