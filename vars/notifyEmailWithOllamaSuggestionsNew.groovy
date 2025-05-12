@@ -5,9 +5,14 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         return
     }
 
+    // def errorLines = buildLog.readLines().findAll { line ->
+    // line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|cannot find the path specified|command not found)/
+    // }
     def errorLines = buildLog.readLines().findAll { line ->
-    line =~ /(?i)(error|exception|failed|not found|undefined|unable to|missing|not recognized|cannot find the path specified|command not found)/
+    line =~ /(?i)(error:|exception|failed|undefined|not found|unable to|missing|not recognized|cannot find|command not found)/ &&
+    !(line =~ /cl\.exe|ollama\.exe|run deepseek-coder|errorReport:/)
     }
+
     def selectedErrors = errorLines.take(10)
 
     if (selectedErrors.isEmpty()) {
