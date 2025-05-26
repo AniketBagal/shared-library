@@ -47,7 +47,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
         return
     }
 
-    def ollamaPath = 'C:\\Users\\aniketb\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
+    def ollamaPath = 'C:\\Users\\Admin\\AppData\\Local\\Programs\\Ollama\\ollama.exe'
 
     if (!fileExists(ollamaPath)) {
         echo "Ollama is not found at: ${ollamaPath}"
@@ -58,7 +58,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     def response = ''
     try {
         response = bat(
-            script: "\"${ollamaPath}\" run deepseek-coder:6.7b < prompt.txt",
+            script: "\"${ollamaPath}\" run tinyllama:1.1b < prompt.txt",
             returnStdout: true
         ).trim()
     } catch (Exception e) {
