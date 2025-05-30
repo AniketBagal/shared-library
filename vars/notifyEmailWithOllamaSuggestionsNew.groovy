@@ -36,6 +36,9 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     ${selectedErrors.join("\n")}
     """
 
+    selectedErrors.eachWithIndex { err, idx ->
+    prompt += "Error ${idx + 1}: ${err}\n"
+    }    
     echo "Generated prompt:\n" + prompt.take(500)
 
     try {
