@@ -1,4 +1,4 @@
-def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
+def call(String buildLog, String toEmail = 'saurabhpatil0407@gmail.com') {
     if (!buildLog?.trim()) {
         echo "Build log is empty or null."
         currentBuild.result = 'FAILURE'
