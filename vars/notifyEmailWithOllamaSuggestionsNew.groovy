@@ -96,7 +96,7 @@ def call(String buildLog, String toEmail = 'aniketbagal12345@gmail.com') {
     <html>
       <body style="font-family: Arial, sans-serif;">
         <h2 style="color:#003366;">Jenkins Build Analysis Report</h2>
-        <p><b>Model Used:</b> deepseek-coder:6.7b</p>
+        <p><b>Model Used:</b> run tinyllama:1.1b</p>
         <p><b>Detected Errors and Suggested Fixes:</b></p>
         ${formattedResponse}
       </body>
